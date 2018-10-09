@@ -8,19 +8,21 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
-#if defined(AF_PACKET)
+#if defined(AF_PACKET) && !defined(__NuttX__)
 #include <linux/if_packet.h>
 #include <linux/if_arp.h>
 #elif defined(AF_LINK)
 #include <net/if_dl.h>
 #include <net/if_types.h>
 #else
+#if !defined(__NuttX__)
 #error System must have AF_PACKET or AF_LINK.
+#endif
 #endif
 
 uint16_t MapHardwareType(uint16_t nativeType)
 {
-#if defined(AF_PACKET)
+#if defined(AF_PACKET) && !defined(__NuttX__)
     switch (nativeType)
     {
         case ARPHRD_ETHER:

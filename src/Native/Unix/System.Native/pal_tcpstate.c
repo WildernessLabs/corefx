@@ -11,7 +11,9 @@
 #elif HAVE_TCP_H_TCPSTATE_ENUM
 #include <netinet/tcp.h>
 #else
+#if !defined(__NuttX__)
 #error System must have TCP states defined in either tcp.h or tcp_fsm.h.
+#endif
 #endif
 
 int32_t SystemNative_MapTcpState(int32_t tcpState)
