@@ -88,7 +88,7 @@ void SystemNative_GetNonCryptographicallySecureRandomBytes(uint8_t* buffer, int3
 
     if (!sInitializedMRand)
     {
-        srand48(time(NULL));
+        srand(time(NULL));
         sInitializedMRand = true;
     }
 
@@ -99,7 +99,7 @@ void SystemNative_GetNonCryptographicallySecureRandomBytes(uint8_t* buffer, int3
     {
         if (i % 4 == 0)
         {
-            num = lrand48();
+            num = rand();
         }
 
         *(buffer + i) ^= num;

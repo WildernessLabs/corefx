@@ -26,7 +26,9 @@
 #include <errno.h>
 #include <netdb.h>
 #include <netinet/in.h>
+#if HAVE_NETINET_TCP_H
 #include <netinet/tcp.h>
+#endif
 #include <stdlib.h>
 #include <string.h>
 #include <sys/ioctl.h>
@@ -43,7 +45,9 @@
 #include <stdio.h>
 #endif
 #include <unistd.h>
+#if HAVE_PWD_H
 #include <pwd.h>
+#endif
 #if HAVE_SENDFILE_4
 #include <sys/sendfile.h>
 #elif HAVE_SENDFILE_6
@@ -55,6 +59,8 @@
 #include <ifaddrs.h>
 #endif
 #endif
+
+#if !defined(__NuttX__)
 
 #if HAVE_KQUEUE
 #if KEVENT_HAS_VOID_UDATA
@@ -2523,3 +2529,5 @@ int32_t SystemNative_SendFile(intptr_t out_fd, intptr_t in_fd, int64_t offset, i
     return SystemNative_ConvertErrorPlatformToPal(errno);
 #endif
 }
+
+#endif

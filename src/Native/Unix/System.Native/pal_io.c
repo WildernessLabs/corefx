@@ -13,7 +13,9 @@
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
+#if !defined(__NuttX__)
 #include <fnmatch.h>
+#endif
 #include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -21,7 +23,9 @@
 #include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#if !defined(__NuttX__)
 #include <sys/file.h>
+#endif
 #include <sys/ioctl.h>
 #include <sys/socket.h>
 #include <syslog.h>
@@ -103,11 +107,13 @@ c_static_assert(PAL_DT_SOCK == DT_SOCK);
 c_static_assert(PAL_DT_WHT == DT_WHT);
 #endif
 
+#if !defined(__NuttX__)
 // Validate that our Lock enum value are correct for the platform
 c_static_assert(PAL_LOCK_SH == LOCK_SH);
 c_static_assert(PAL_LOCK_EX == LOCK_EX);
 c_static_assert(PAL_LOCK_NB == LOCK_NB);
 c_static_assert(PAL_LOCK_UN == LOCK_UN);
+#endif
 
 // Validate our AccessMode enum values are correct for the platform
 c_static_assert(PAL_F_OK == F_OK);
@@ -141,12 +147,14 @@ c_static_assert(PAL_IN_ISDIR == IN_ISDIR);
 
 static void ConvertFileStatus(const struct stat_* src, struct FileStatus* dst)
 {
+#if !defined(__NuttX__)
     dst->Dev = (int64_t)src->st_dev;
     dst->Ino = (int64_t)src->st_ino;
-    dst->Flags = FILESTATUS_FLAGS_NONE;
-    dst->Mode = (int32_t)src->st_mode;
     dst->Uid = src->st_uid;
     dst->Gid = src->st_gid;
+#endif
+    dst->Flags = FILESTATUS_FLAGS_NONE;
+    dst->Mode = (int32_t)src->st_mode;
     dst->Size = src->st_size;
 
     dst->ATime = src->st_atime;
@@ -206,6 +214,7 @@ int32_t SystemNative_FStat2(intptr_t fd, struct FileStatus* output)
 
 int32_t SystemNative_LStat2(const char* path, struct FileStatus* output)
 {
+#if !defined(__NuttX__)
     struct stat_ result;
     int ret = lstat_(path, &result);
 
@@ -215,6 +224,9 @@ int32_t SystemNative_LStat2(const char* path, struct FileStatus* output)
     }
 
     return ret;
+#else
+    return -1;
+#endif
 }
 
 static int32_t ConvertOpenFlags(int32_t flags)
@@ -269,7 +281,7 @@ intptr_t SystemNative_Open(const char* path, int32_t flags, int32_t mode)
     flags = ConvertOpenFlags(flags);
     if (flags == -1)
     {
-        errno = EINVAL;
+        set_errno(EINVAL);
         return -1;
     }
 
@@ -315,14 +327,14 @@ intptr_t SystemNative_ShmOpen(const char* name, int32_t flags, int32_t mode)
     flags = ConvertOpenFlags(flags);
     if (flags == -1)
     {
-        errno = EINVAL;
+        set_errno(EINVAL);
         return -1;
     }
 
     return shm_open(name, flags, (mode_t)mode);
 #else
     (void)name, (void)flags, (void)mode;
-    errno = ENOTSUP;
+    set_errno(ENOTSUP);
     return -1;
 #endif
 }
@@ -336,7 +348,7 @@ int32_t SystemNative_ShmUnlink(const char* name)
 #else
     // Not supported on e.g. Android. Also, prevent a compiler error because name is unused
     (void)name;
-    errno = ENOTSUP;
+    set_errno(ENOTSUP);
     return -1;
 #endif
 }
@@ -444,7 +456,7 @@ int32_t SystemNative_ReadDirR(DIR* dir, uint8_t* buffer, int32_t bufferSize, str
 #else
     (void)buffer;     // unused
     (void)bufferSize; // unused
-    errno = 0;
+    set_errno(0);
     struct dirent* entry = readdir(dir);
 
     // 0 returned with null result -> end-of-stream
@@ -488,7 +500,7 @@ int32_t SystemNative_Pipe(int32_t pipeFds[2], int32_t flags)
             break;
         default:
             assert_msg(false, "Unknown pipe flag", (int)flags);
-            errno = EINVAL;
+            set_errno(EINVAL);
             return -1;
     }
 
@@ -518,7 +530,7 @@ int32_t SystemNative_Pipe(int32_t pipeFds[2], int32_t flags)
             int tmpErrno = errno;
             close(pipeFds[0]);
             close(pipeFds[1]);
-            errno = tmpErrno;
+            set_errno(tmpErrno);
         }
     }
 #endif
@@ -549,7 +561,7 @@ int32_t SystemNative_FcntlGetPipeSz(intptr_t fd)
     return result;
 #else
     (void)fd;
-    errno = ENOTSUP;
+    set_errno(ENOTSUP);
     return -1;
 #endif
 }
@@ -562,7 +574,7 @@ int32_t SystemNative_FcntlSetPipeSz(intptr_t fd, int32_t size)
     return result;
 #else
     (void)fd, (void)size;
-    errno = ENOTSUP;
+    set_errno(ENOTSUP);
     return -1;
 #endif
 }
@@ -598,16 +610,24 @@ int32_t SystemNative_MkDir(const char* path, int32_t mode)
 
 int32_t SystemNative_ChMod(const char* path, int32_t mode)
 {
+#if !defined(__NuttX__)
     int32_t result;
     while ((result = chmod(path, (mode_t)mode)) < 0 && errno == EINTR);
     return result;
+#else
+    return -1;
+#endif
 }
 
 int32_t SystemNative_FChMod(intptr_t fd, int32_t mode)
 {
+#if !defined(__NuttX__)
     int32_t result;
     while ((result = fchmod(ToFileDescriptor(fd), (mode_t)mode)) < 0 && errno == EINTR);
     return result;
+#else
+    return -1;
+#endif
 }
 
 int32_t SystemNative_FSync(intptr_t fd)
@@ -619,9 +639,13 @@ int32_t SystemNative_FSync(intptr_t fd)
 
 int32_t SystemNative_FLock(intptr_t fd, int32_t operation)
 {
+#if !defined(__NuttX__)
     int32_t result;
     while ((result = flock(ToFileDescriptor(fd), operation)) < 0 && errno == EINTR);
     return result;
+#else
+    return -1;
+#endif
 }
 
 int32_t SystemNative_ChDir(const char* path)
@@ -638,7 +662,11 @@ int32_t SystemNative_Access(const char* path, int32_t mode)
 
 int32_t SystemNative_FnMatch(const char* pattern, const char* path, int32_t flags)
 {
+#if !defined(__NuttX__)
     return fnmatch(pattern, path, flags);
+#else
+    return -1;
+#endif
 }
 
 int64_t SystemNative_LSeek(intptr_t fd, int64_t offset, int32_t whence)
@@ -659,9 +687,13 @@ int64_t SystemNative_LSeek(intptr_t fd, int64_t offset, int32_t whence)
 
 int32_t SystemNative_Link(const char* source, const char* linkTarget)
 {
+#if !defined(__NuttX__)
     int32_t result;
     while ((result = link(source, linkTarget)) < 0 && errno == EINTR);
     return result;
+#else
+    return -1;
+#endif
 }
 
 intptr_t SystemNative_MksTemps(char* pathTemplate, int32_t suffixLength)
@@ -680,7 +712,7 @@ intptr_t SystemNative_MksTemps(char* pathTemplate, int32_t suffixLength)
     // the suffix
     if (suffixLength < 0 || suffixLength > pathTemplateLength - 6)
     {
-        errno = EINVAL;
+        set_errno(EINVAL);
         return -1;
     }
 
@@ -781,7 +813,7 @@ void* SystemNative_MMap(void* address,
 {
     if (length > SIZE_MAX)
     {
-        errno = ERANGE;
+        set_errno(ERANGE);
         return NULL;
     }
 
@@ -790,7 +822,7 @@ void* SystemNative_MMap(void* address,
 
     if (flags == -1 || protection == -1)
     {
-        errno = EINVAL;
+        set_errno(EINVAL);
         return NULL;
     }
 
@@ -821,7 +853,7 @@ int32_t SystemNative_MUnmap(void* address, uint64_t length)
 {
     if (length > SIZE_MAX)
     {
-        errno = ERANGE;
+        set_errno(ERANGE);
         return -1;
     }
 
@@ -832,7 +864,7 @@ int32_t SystemNative_MAdvise(void* address, uint64_t length, int32_t advice)
 {
     if (length > SIZE_MAX)
     {
-        errno = ERANGE;
+        set_errno(ERANGE);
         return -1;
     }
 
@@ -843,13 +875,13 @@ int32_t SystemNative_MAdvise(void* address, uint64_t length, int32_t advice)
             return madvise(address, (size_t)length, MADV_DONTFORK);
 #else
             (void)address, (void)length, (void)advice;
-            errno = ENOTSUP;
+            set_errno(ENOTSUP);
             return -1;
 #endif
     }
 
     assert_msg(false, "Unknown MemoryAdvice", (int)advice);
-    errno = EINVAL;
+    set_errno(EINVAL);
     return -1;
 }
 
@@ -858,7 +890,7 @@ int32_t SystemNative_MLock(void* address, uint64_t length)
 #if !defined (__HAIKU__)
     if (length > SIZE_MAX)
     {
-        errno = ERANGE;
+        set_errno(ERANGE);
         return -1;
     }
 
@@ -874,7 +906,7 @@ int32_t SystemNative_MUnlock(void* address, uint64_t length)
 #if !defined (__HAIKU__)
     if (length > SIZE_MAX)
     {
-        errno = ERANGE;
+        set_errno(ERANGE);
         return -1;
     }
 
@@ -889,14 +921,14 @@ int32_t SystemNative_MProtect(void* address, uint64_t length, int32_t protection
 {
     if (length > SIZE_MAX)
     {
-        errno = ERANGE;
+        set_errno(ERANGE);
         return -1;
     }
 
     protection = ConvertMMapProtection(protection);
     if (protection == -1)
     {
-        errno = EINVAL;
+        set_errno(EINVAL);
         return -1;
     }
 
@@ -907,14 +939,14 @@ int32_t SystemNative_MSync(void* address, uint64_t length, int32_t flags)
 {
     if (length > SIZE_MAX)
     {
-        errno = ERANGE;
+        set_errno(ERANGE);
         return -1;
     }
 
     flags = ConvertMSyncFlags(flags);
     if (flags == -1)
     {
-        errno = EINVAL;
+        set_errno(EINVAL);
         return -1;
     }
 
@@ -923,6 +955,7 @@ int32_t SystemNative_MSync(void* address, uint64_t length, int32_t flags)
 
 int64_t SystemNative_SysConf(int32_t name)
 {
+#if !defined(__NuttX__)
     switch (name)
     {
         case PAL_SC_CLK_TCK:
@@ -930,14 +963,16 @@ int64_t SystemNative_SysConf(int32_t name)
         case PAL_SC_PAGESIZE:
             return sysconf(_SC_PAGESIZE);
     }
+#endif
 
     assert_msg(false, "Unknown SysConf name", (int)name);
-    errno = EINVAL;
+    set_errno(EINVAL);
     return -1;
 }
 
 int32_t SystemNative_FTruncate(intptr_t fd, int64_t length)
 {
+#if !defined(__NuttX__)
     int32_t result;
     while ((
         result =
@@ -949,6 +984,9 @@ int32_t SystemNative_FTruncate(intptr_t fd, int64_t length)
             ToFileDescriptor(fd),
             (off_t)length)) < 0 && errno == EINTR);
     return result;
+#else
+    return -1;
+#endif
 }
 
 int32_t SystemNative_Poll(struct PollEvent* pollEvents, uint32_t eventCount, int32_t milliseconds, uint32_t* triggered)
@@ -971,7 +1009,7 @@ int32_t SystemNative_Poll(struct PollEvent* pollEvents, uint32_t eventCount, int
 
 
     int useStackBuffer = bufferSize <= 2048;
-    struct pollfd* pollfds = (struct pollfd*)(useStackBuffer ? alloca(bufferSize) : malloc(bufferSize));
+    struct pollfd* pollfds = (struct pollfd*)(useStackBuffer ? __builtin_alloca(bufferSize) : malloc(bufferSize));
     if (pollfds == NULL)
     {
         return Error_ENOMEM;
@@ -988,9 +1026,11 @@ int32_t SystemNative_Poll(struct PollEvent* pollEvents, uint32_t eventCount, int
             case PAL_POLLIN:
                 pollfds[i].events = POLLIN;
                 break;
+#if !defined(__NuttX__)	
             case PAL_POLLPRI:
                 pollfds[i].events = POLLPRI;
                 break;
+#endif
             case PAL_POLLOUT:
                 pollfds[i].events = POLLOUT;
                 break;
@@ -1036,9 +1076,11 @@ int32_t SystemNative_Poll(struct PollEvent* pollEvents, uint32_t eventCount, int
             case POLLIN:
                 pollEvents[i].TriggeredEvents = PAL_POLLIN;
                 break;
+#if !defined(__NuttX__)
             case POLLPRI:
                 pollEvents[i].TriggeredEvents = PAL_POLLPRI;
                 break;
+#endif
             case POLLOUT:
                 pollEvents[i].TriggeredEvents = PAL_POLLOUT;
                 break;
@@ -1106,6 +1148,7 @@ int32_t SystemNative_PosixFAdvise(intptr_t fd, int64_t offset, int64_t length, i
 
 char* SystemNative_GetLine(FILE* stream)
 {
+#if !defined(__NuttX__)
     assert(stream != NULL);
 
     char* lineptr = NULL;
@@ -1113,6 +1156,9 @@ char* SystemNative_GetLine(FILE* stream)
     ssize_t length = getline(&lineptr, &n, stream);
     
     return length >= 0 ? lineptr : NULL;
+#else
+    return NULL;
+#endif
 }
 
 #endif
@@ -1124,7 +1170,7 @@ int32_t SystemNative_Read(intptr_t fd, void* buffer, int32_t bufferSize)
 
     if (bufferSize < 0)
     {
-        errno = EINVAL;
+        set_errno(EINVAL);
         return -1;
     }
 
@@ -1141,12 +1187,13 @@ int32_t SystemNative_Read(intptr_t fd, void* buffer, int32_t bufferSize)
 
 int32_t SystemNative_ReadLink(const char* path, char* buffer, int32_t bufferSize)
 {
+#if !defined(__NuttX__)
     assert(buffer != NULL || bufferSize == 0);
     assert(bufferSize >= 0);
 
     if (bufferSize <= 0)
     {
-        errno = EINVAL;
+        set_errno(EINVAL);
         return -1;
     }
 
@@ -1154,6 +1201,9 @@ int32_t SystemNative_ReadLink(const char* path, char* buffer, int32_t bufferSize
     assert(count >= -1 && count <= bufferSize);
 
     return (int32_t)count;
+#else
+    return -1;
+#endif
 }
 
 int32_t SystemNative_Rename(const char* oldPath, const char* newPath)
@@ -1172,7 +1222,9 @@ int32_t SystemNative_RmDir(const char* path)
 
 void SystemNative_Sync(void)
 {
+#if !defined(__NuttX__)
     sync();
+#endif
 }
 
 int32_t SystemNative_Write(intptr_t fd, const void* buffer, int32_t bufferSize)
@@ -1182,7 +1234,7 @@ int32_t SystemNative_Write(intptr_t fd, const void* buffer, int32_t bufferSize)
 
     if (bufferSize < 0)
     {
-        errno = ERANGE;
+        set_errno(ERANGE);
         return -1;
     }
 
@@ -1215,7 +1267,7 @@ static int32_t CopyFile_ReadWrite(int inFd, int outFd)
         {
             int tmp = errno;
             free(buffer);
-            errno = tmp;
+            set_errno(tmp);
             return -1;
         }
         if (bytesRead == 0)
@@ -1234,7 +1286,7 @@ static int32_t CopyFile_ReadWrite(int inFd, int outFd)
             {
                 int tmp = errno;
                 free(buffer);
-                errno = tmp;
+                set_errno(tmp);
                 return -1;
             }
             assert(bytesWritten >= 0);
@@ -1368,7 +1420,7 @@ intptr_t SystemNative_INotifyInit(void)
 #if HAVE_INOTIFY
     return inotify_init();
 #else
-    errno = ENOTSUP;
+    set_errno(ENOTSUP);
     return -1;
 #endif
 }
@@ -1385,7 +1437,7 @@ int32_t SystemNative_INotifyAddWatch(intptr_t fd, const char* pathName, uint32_t
     return inotify_add_watch(ToFileDescriptor(fd), pathName, mask);
 #else
     (void)fd, (void)pathName, (void)mask;
-    errno = ENOTSUP;
+    set_errno(ENOTSUP);
     return -1;
 #endif
 }
@@ -1405,7 +1457,7 @@ int32_t SystemNative_INotifyRemoveWatch(intptr_t fd, int32_t wd)
 #endif
 #else
     (void)fd, (void)wd;
-    errno = ENOTSUP;
+    set_errno(ENOTSUP);
     return -1;
 #endif
 }
@@ -1431,22 +1483,27 @@ int32_t SystemNative_GetPeerID(intptr_t socket, uid_t* euid)
 #else
     (void)fd;
     (void)*euid;
-    errno = ENOTSUP;
+    set_errno(ENOTSUP);
     return -1;
 #endif
 }
 
 char* SystemNative_RealPath(const char* path)
 {
+#if !defined(__NuttX__)
     assert(path != NULL);
     return realpath(path, NULL);
+#else
+    return NULL;
+#endif
 }
 
 int32_t SystemNative_LockFileRegion(intptr_t fd, int64_t offset, int64_t length, int16_t lockType)
 {
+#if !defined(__NuttX__)
     if (offset < 0 || length < 0) 
     {
-        errno = EINVAL;
+        set_errno(EINVAL);
         return -1;
     }
 
@@ -1464,6 +1521,9 @@ int32_t SystemNative_LockFileRegion(intptr_t fd, int64_t offset, int64_t length,
     int32_t ret;
     while ((ret = fcntl (ToFileDescriptor(fd), F_SETLK, &lockArgs)) < 0 && errno == EINTR);
     return ret;
+#else
+    return -1;
+#endif
 }
 
 int32_t SystemNative_LChflags(const char* path, uint32_t flags)
