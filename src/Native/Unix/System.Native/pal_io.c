@@ -63,6 +63,9 @@ extern int     getpeereid(int, uid_t *__restrict__, gid_t *__restrict__);
 #define lstat_ lstat
 #endif
 
+#ifndef __NuttX__
+// MEADOW TODO: Check this in more detail.
+
 // These numeric values are specified by POSIX.
 // Validate that our definitions match.
 c_static_assert(PAL_S_IRWXU == S_IRWXU);
@@ -165,6 +168,8 @@ c_static_assert(PAL_IN_EXCL_UNLINK == IN_EXCL_UNLINK);
 #endif // HAVE_IN_EXCL_UNLINK
 c_static_assert(PAL_IN_ISDIR == IN_ISDIR);
 #endif // HAVE_INOTIFY
+
+#endif
 
 static void ConvertFileStatus(const struct stat_* src, struct FileStatus* dst)
 {
