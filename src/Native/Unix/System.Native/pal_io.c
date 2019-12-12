@@ -892,7 +892,7 @@ int32_t SystemNative_MAdvise(void* address, uint64_t length, int32_t advice)
 
 int32_t SystemNative_MLock(void* address, uint64_t length)
 {
-#if !defined (__HAIKU__)
+#if !defined (__HAIKU__) && !defined(__NuttX__)
     if (length > SIZE_MAX)
     {
         set_errno(ERANGE);
@@ -901,14 +901,14 @@ int32_t SystemNative_MLock(void* address, uint64_t length)
 
     return mlock(address, (size_t)length);
 #else
-    errno = ENOSYS;
+    set_errno(ENOSYS);
     return -1;
 #endif
 }
 
 int32_t SystemNative_MUnlock(void* address, uint64_t length)
 {
-#if !defined (__HAIKU__)
+#if !defined (__HAIKU__) && !defined(__NuttX__)
     if (length > SIZE_MAX)
     {
         set_errno(ERANGE);
@@ -917,13 +917,14 @@ int32_t SystemNative_MUnlock(void* address, uint64_t length)
 
     return munlock(address, (size_t)length);
 #else
-    errno = ENOSYS;
+    set_errno(ENOSYS);
     return -1;
 #endif
 }
 
 int32_t SystemNative_MProtect(void* address, uint64_t length, int32_t protection)
 {
+#if !defined(__NuttX__)
     if (length > SIZE_MAX)
     {
         set_errno(ERANGE);
@@ -938,10 +939,15 @@ int32_t SystemNative_MProtect(void* address, uint64_t length, int32_t protection
     }
 
     return mprotect(address, (size_t)length, protection);
+#else
+    set_errno(ENOSYS);
+    return -1;
+#endif
 }
 
 int32_t SystemNative_MSync(void* address, uint64_t length, int32_t flags)
 {
+#if !defined(__NuttX__)
     if (length > SIZE_MAX)
     {
         set_errno(ERANGE);
@@ -956,6 +962,10 @@ int32_t SystemNative_MSync(void* address, uint64_t length, int32_t flags)
     }
 
     return msync(address, (size_t)length, flags);
+#else
+    set_errno(ENOSYS);
+    return -1;
+#endif
 }
 
 int64_t SystemNative_SysConf(int32_t name)
