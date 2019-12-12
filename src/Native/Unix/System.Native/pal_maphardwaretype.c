@@ -12,6 +12,8 @@
 #if defined(_WASM_)
 #include <netpacket/packet.h>
 #include <net/if_arp.h>
+#elif defined(__NuttX__)
+#include <nuttx/net/arp.h>
 #else // _WASM_
 #include <linux/if_packet.h>
 #include <linux/if_arp.h>
@@ -25,6 +27,18 @@
 
 uint16_t MapHardwareType(uint16_t nativeType)
 {
+#if defined(__NuttX__)
+    switch (nativeType)
+    {
+        case ARPHRD_ETHER:
+            return NetworkInterfaceType_Ethernet;
+        case ARPHRD_IEEE80211:
+        case ARPHRD_IEEE802154:
+            return NetworkInterfaceType_Wireless80211;
+        default:
+            return NetworkInterfaceType_Unknown;
+    }
+#else
 #if defined(AF_PACKET)
     switch (nativeType)
     {
@@ -100,5 +114,6 @@ uint16_t MapHardwareType(uint16_t nativeType)
         default:
             return NetworkInterfaceType_Unknown;
     }
+#endif
 #endif
 }

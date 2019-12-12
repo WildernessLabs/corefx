@@ -11,9 +11,11 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/types.h>
+#if !defined(__NuttX__)
 #include <pwd.h>
+#endif
 
-#ifndef TARGET_ANDROID
+#if !defined(TARGET_ANDROID) && !defined(__NuttX__)
 
 static int32_t ConvertNativePasswdToPalPasswd(int error, struct passwd* nativePwd, struct passwd* result, Passwd* pwd)
 {
@@ -81,15 +83,27 @@ int32_t SystemNative_GetPwNamR(const char* name, Passwd* pwd, char* buf, int32_t
 
 uint32_t SystemNative_GetEUid()
 {
+#if defined(__NuttX__)
+    return 0;
+#else
     return geteuid();
+#endif
 }
 
 uint32_t SystemNative_GetEGid()
 {
+#if defined(__NuttX__)
+    return 0;
+#else
     return getegid();
+#endif
 }
 
 int32_t SystemNative_SetEUid(uid_t euid)
 {
+#if defined(__NuttX__)
+    return 0;
+#else
     return seteuid(euid);
+#endif
 }

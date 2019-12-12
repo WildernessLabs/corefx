@@ -7,7 +7,9 @@
 #include "pal_utilities.h"
 
 #include <assert.h>
+#if !defined(__NuttX__)
 #include <utime.h>
+#endif
 #include <time.h>
 #include <sys/time.h>
 #if HAVE_MACH_ABSOLUTE_TIME
@@ -36,6 +38,9 @@ static void ConvertTimeValPair(const TimeValPair* pal, struct timeval native[2])
 
 int32_t SystemNative_UTime(const char* path, UTimBuf* times)
 {
+#if defined(__NuttX__)
+    return 0;
+#else
     assert(times != NULL);
 
     struct utimbuf temp;
@@ -44,10 +49,14 @@ int32_t SystemNative_UTime(const char* path, UTimBuf* times)
     int32_t result;
     while (CheckInterrupted(result = utime(path, &temp)));
     return result;
+#endif
 }
 
 int32_t SystemNative_UTimes(const char* path, TimeValPair* times)
 {
+#if defined(__NuttX__)
+    return 0;
+#else
     assert(times != NULL);
 
     struct timeval temp [2];
@@ -56,6 +65,7 @@ int32_t SystemNative_UTimes(const char* path, TimeValPair* times)
     int32_t result;
     while (CheckInterrupted(result = utimes(path, temp)));
     return result;
+#endif
 }
 
 

@@ -1329,9 +1329,11 @@ int32_t SystemNative_CopyFile(intptr_t sourceFd, intptr_t destinationFd)
         return -1;
     }
 
+#if !defined(__NuttX__)
     // Copy permissions.  This fchmod() needs to happen prior to writing anything into
     // the file to avoid possibly leaking any private data.
     while ((ret = fchmod(outFd, sourceStat.st_mode & (S_IRWXU | S_IRWXG | S_IRWXO))) < 0 && errno == EINTR);
+#endif
 #if !TARGET_ANDROID
     // On Android, we are not allowed to modify permissions, but the copy should still succeed;
     // see https://github.com/mono/mono/issues/17133 for details.
@@ -1539,7 +1541,7 @@ int32_t SystemNative_LChflags(const char* path, uint32_t flags)
     return result;
 #else
     (void)path, (void)flags;
-    errno = ENOTSUP;
+    set_errno(ENOTSUP);
     return -1;
 #endif
 }
@@ -1555,5 +1557,11 @@ int32_t SystemNative_LChflagsCanSetHiddenFlag(void)
 
 int32_t SystemNative_Symlink(const char* target, const char* linkPath)
 {
+#if !defined(HOST_NO_SYMLINKS)
     return symlink(target, linkPath);
+#else
+    (void)target, (void)linkPath;
+    set_errno(ENOTSUP);
+    return -1;
+#endif
 }
