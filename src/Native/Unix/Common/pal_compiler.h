@@ -28,3 +28,7 @@
 #endif
 
 #define DLLEXPORT __attribute__ ((__visibility__ ("default")))
+
+#if !defined(__NuttX__)
+#define set_errno(ERR) (errno = (ERR))
+#endif
