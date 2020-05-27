@@ -57,7 +57,9 @@
 #endif
 #endif
 
-#if !defined(__NuttX__)
+#if defined(__NuttX__)
+#include <poll.h>
+#endif
 
 #if HAVE_KQUEUE
 #if KEVENT_HAS_VOID_UDATA
@@ -430,7 +432,7 @@ int32_t SystemNative_GetDomainName(uint8_t* name, int32_t nameLength)
     return 0;
 #else
     // GetDomainName is not supported on this platform.
-    errno = ENOTSUP;
+    set_errno(ENOTSUP);
     return -1;
 #endif
 }
@@ -947,7 +949,9 @@ int32_t SystemNative_GetIPv4MulticastOption(intptr_t socket, int32_t multicastOp
     memset(option, 0, sizeof(struct IPv4MulticastOption));
     option->MulticastAddress = opt.imr_multiaddr.s_addr;
 #if HAVE_IP_MREQN
+#if !defined(__NuttX__)
     option->LocalAddress = opt.imr_address.s_addr;
+#endif
     option->InterfaceIndex = opt.imr_ifindex;
 #else
     option->LocalAddress = opt.imr_interface.s_addr;
@@ -975,7 +979,9 @@ int32_t SystemNative_SetIPv4MulticastOption(intptr_t socket, int32_t multicastOp
     struct ip_mreqn opt;
     memset(&opt, 0, sizeof(struct ip_mreqn));
     opt.imr_multiaddr.s_addr = option->MulticastAddress;
+#if !defined(__NuttX__)
     opt.imr_address.s_addr = option->LocalAddress;
+#endif
     opt.imr_ifindex = option->InterfaceIndex;
 #else
     struct ip_mreq opt;
@@ -1295,7 +1301,7 @@ int32_t SystemNative_Accept(intptr_t socket, uint8_t* socketAddress, int32_t* so
         int oldErrno = errno;
         close(accepted);
         accepted = -1;
-        errno = oldErrno;
+        set_errno(oldErrno);
     }
 #endif
 #endif
@@ -1307,7 +1313,7 @@ int32_t SystemNative_Accept(intptr_t socket, uint8_t* socketAddress, int32_t* so
         int oldErrno = errno;
         close(accepted);
         accepted = -1;
-        errno = oldErrno;
+        set_errno(oldErrno);
     }
 #endif
     if (accepted == -1)
@@ -1553,6 +1559,7 @@ static bool TryGetPlatformSocketOption(int32_t socketOptionName, int32_t socketO
 
             switch (socketOptionLevel)
             {
+#if !defined(__NuttX__)
                 case SocketOptionName_SO_IP_OPTIONS:
                     *optName = IP_OPTIONS;
                     return true;
@@ -1568,6 +1575,7 @@ static bool TryGetPlatformSocketOption(int32_t socketOptionName, int32_t socketO
                 case SocketOptionName_SO_IP_TTL:
                     *optName = IP_TTL;
                     return true;
+#endif
 
                 case SocketOptionName_SO_IP_MULTICAST_IF:
                     *optName = IP_MULTICAST_IF;
@@ -1941,6 +1949,9 @@ int32_t SystemNative_Socket(int32_t addressFamily, int32_t socketType, int32_t p
 
 int32_t SystemNative_GetAtOutOfBandMark(intptr_t socket, int32_t* atMark)
 {
+#if defined(__NuttX__)
+    return Error_EFAULT;
+#else
     if (atMark == NULL)
     {
         return Error_EFAULT;
@@ -1959,6 +1970,7 @@ int32_t SystemNative_GetAtOutOfBandMark(intptr_t socket, int32_t* atMark)
 
     *atMark = (int32_t)result;
     return Error_SUCCESS;
+#endif
 }
 
 int32_t SystemNative_GetBytesAvailable(intptr_t socket, int32_t* available)
@@ -2381,6 +2393,9 @@ int32_t SystemNative_PlatformSupportsDualModeIPv4PacketInfo(void)
 
 static char* GetNameFromUid(uid_t uid)
 {
+#if defined(__NuttX__)
+    return NULL;
+#else
     size_t bufferLength = 512;
     while (1)
     {
@@ -2414,6 +2429,7 @@ static char* GetNameFromUid(uid_t uid)
         }
         bufferLength = tmpBufferLength;
     }
+#endif
 }
 
 char* SystemNative_GetPeerUserName(intptr_t socket)
@@ -2504,9 +2520,7 @@ int32_t SystemNative_SendFile(intptr_t out_fd, intptr_t in_fd, int64_t offset, i
     (void)offset;
     (void)count;
     *sent = 0;
-    errno = ENOTSUP;
+    set_errno(ENOTSUP);
     return SystemNative_ConvertErrorPlatformToPal(errno);
 #endif
 }
-
-#endif
