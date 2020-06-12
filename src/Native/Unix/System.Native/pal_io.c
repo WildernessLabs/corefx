@@ -41,6 +41,17 @@
 #include <sys/inotify.h>
 #endif
 
+#if defined(__NuttX__)
+// pulled from hostfs.h
+#define NUTTX_S_IFIFO           (0 << 11)
+#define NUTTX_S_IFCHR           (1 << 11)
+#define NUTTX_S_IFDIR           (2 << 11)
+#define NUTTX_S_IFBLK           (3 << 11)
+#define NUTTX_S_IFREG           (4 << 11)
+#define NUTTX_S_IFSOCK          (8 << 11)
+#define NUTTX_S_IFLNK           (1 << 15)
+#endif 
+
 #ifdef _AIX
 #include <alloca.h>
 // Somehow, AIX mangles the definition for this behind a C++ def
@@ -152,14 +163,50 @@ c_static_assert(PAL_IN_ISDIR == IN_ISDIR);
 
 static void ConvertFileStatus(const struct stat_* src, struct FileStatus* dst)
 {
+    int src_mode = (int32_t)src->st_mode;
+    int dst_mode = src_mode;
+    
 #if !defined(__NuttX__)
     dst->Dev = (int64_t)src->st_dev;
     dst->Ino = (int64_t)src->st_ino;
     dst->Uid = src->st_uid;
     dst->Gid = src->st_gid;
+#else
+#pragma message("Using NUTTX #defines in pal_io")
+    dst_mode = src_mode & 0777;
+    if(src_mode & NUTTX_S_IFDIR)
+    {
+        dst_mode |= PAL_S_IFDIR;
+    }
+    else if(src_mode & NUTTX_S_IFREG)
+    {
+        dst_mode |= PAL_S_IFREG;
+    }
+    else if(src_mode & NUTTX_S_IFCHR)
+    {
+        dst_mode |= PAL_S_IFCHR;
+    }
+    else if(src_mode & NUTTX_S_IFBLK)
+    {
+        // no equivalent in mono - so ignore
+        // dst_mode |= PAL_S_IFBLK;
+    }
+    else if(src_mode & NUTTX_S_IFLNK)
+    {
+        dst_mode |= PAL_S_IFLNK;
+    }
+    else if(src_mode & NUTTX_S_IFIFO)
+    {
+        dst_mode |= PAL_S_IFIFO;
+    }
+    else if(src_mode & NUTTX_S_IFSOCK)
+    {
+        dst_mode |= PAL_S_IFSOCK;
+    }
 #endif
+
     dst->Flags = FILESTATUS_FLAGS_NONE;
-    dst->Mode = (int32_t)src->st_mode;
+    dst->Mode = dst_mode;
     dst->Size = src->st_size;
 
     dst->ATime = src->st_atime;
