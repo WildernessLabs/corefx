@@ -277,7 +277,8 @@ int32_t SystemNative_LStat2(const char* path, struct FileStatus* output)
 
     return ret;
 #else
-    return -1;
+    // nuttx does not support lstat, so we'll replace it with a call to stat
+    return SystemNative_Stat2(path, output);
 #endif
 }
 
