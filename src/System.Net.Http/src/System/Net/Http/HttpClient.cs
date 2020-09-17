@@ -14,7 +14,7 @@ namespace System.Net.Http
     {
         #region Fields
 
-        private static readonly TimeSpan s_defaultTimeout = TimeSpan.FromSeconds(100);
+        private static readonly TimeSpan s_defaultTimeout = TimeSpan.FromSeconds(1000);
         private static readonly TimeSpan s_maxTimeout = TimeSpan.FromMilliseconds(int.MaxValue);
         private static readonly TimeSpan s_infiniteTimeout = Threading.Timeout.InfiniteTimeSpan;
         private const HttpCompletionOption defaultCompletionOption = HttpCompletionOption.ResponseContentRead;
