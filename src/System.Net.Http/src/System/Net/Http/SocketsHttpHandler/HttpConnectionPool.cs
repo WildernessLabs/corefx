@@ -260,7 +260,7 @@ namespace System.Net.Http
 
                 HttpConnection conn = cachedConnection._connection;
                 if (cachedConnection.IsUsable(now, pooledConnectionLifetime, pooledConnectionIdleTimeout) &&
-                    !conn.EnsureReadAheadAndPollRead())
+                    !conn.PollRead())
                 {
                     // We found a valid connection.  Return it.
                     if (NetEventSource.IsEnabled) conn.Trace("Found usable connection in pool.");
@@ -652,7 +652,7 @@ namespace System.Net.Http
 
                 // If there's someone waiting for a connection, simply
                 // transfer this one to them rather than pooling it.
-                if (_waitersTail != null && !connection.EnsureReadAheadAndPollRead())
+                if (_waitersTail != null && !connection.PollRead())
                 {
                     ConnectionWaiter waiter = DequeueWaiter();
                     waiter._cancellationTokenRegistration.Dispose();
