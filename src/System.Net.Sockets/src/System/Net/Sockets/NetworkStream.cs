@@ -15,7 +15,7 @@ namespace System.Net.Sockets
     public partial class NetworkStream : Stream
     {
         // Used by the class to hold the underlying socket the stream uses.
-        private readonly Socket _streamSocket;
+        internal readonly Socket _streamSocket;
 
         // Whether the stream should dispose of the socket when the stream is disposed
         private readonly bool _ownsSocket;
