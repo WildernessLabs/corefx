@@ -473,6 +473,23 @@ namespace System.Net.Sockets
             }
         }
 
+#if MONO_FEATURE_MBEDTLS
+        // Hack to support SNI on MbedTLS
+        internal DualSocketMultipleConnectAsync(SocketType socketType, ProtocolType protocolType, string hostname)
+        {
+            if (Socket.OSSupportsIPv4)
+            {
+                _socket4 = new Socket(AddressFamily.InterNetwork, socketType, protocolType);
+                _socket4.SetHostname(hostname);
+            }
+            if (Socket.OSSupportsIPv6)
+            {
+                _socket6 = new Socket(AddressFamily.InterNetworkV6, socketType, protocolType);
+                _socket6.SetHostname(hostname);
+            }
+        }
+#endif
+
         protected override IPAddress GetNextAddress(out Socket attemptSocket)
         {
             IPAddress rval = null;
