@@ -45,11 +45,6 @@ namespace System
         public const long TicksPerDay = TicksPerHour * 24;          // 864,000,000,000
         private const double DaysPerTick = 1.0 / TicksPerDay; // 1.1574074074074074074e-12
 
-        private const int MillisPerSecond = 1000;
-        private const int MillisPerMinute = MillisPerSecond * 60; //     60,000
-        private const int MillisPerHour = MillisPerMinute * 60;   //  3,600,000
-        private const int MillisPerDay = MillisPerHour * 24;      // 86,400,000
-
         internal const long MaxSeconds = Int64.MaxValue / TicksPerSecond;
         internal const long MinSeconds = Int64.MinValue / TicksPerSecond;
 
@@ -199,7 +194,7 @@ namespace System
 
         public static TimeSpan FromDays(double value)
         {
-            return Interval(value, MillisPerDay);
+            return Interval(value, TicksPerDay);
         }
 
         public TimeSpan Duration()
@@ -235,27 +230,27 @@ namespace System
 
         public static TimeSpan FromHours(double value)
         {
-            return Interval(value, MillisPerHour);
+            return Interval(value, TicksPerHour);
         }
 
         private static TimeSpan Interval(double value, int scale)
         {
-            if (Double.IsNaN(value))
+            if (double.IsNaN(value))
                 throw new ArgumentException(SR.Arg_CannotBeNaN);
-            double millis = value * scale;
-            if ((millis > Int64.MaxValue / TicksPerMillisecond) || (millis < Int64.MinValue / TicksPerMillisecond))
+            double ticks = value * scale;
+            if ((ticks > long.MaxValue) || (ticks < long.MinValue))
                 throw new OverflowException(SR.Overflow_TimeSpanTooLong);
-            return new TimeSpan((long)millis * TicksPerMillisecond);
+            return new TimeSpan((long)ticks);
         }
 
         public static TimeSpan FromMilliseconds(double value)
         {
-            return Interval(value, 1);
+            return Interval(value, TicksPerMillisecond);
         }
 
         public static TimeSpan FromMinutes(double value)
         {
-            return Interval(value, MillisPerMinute);
+            return Interval(value, TicksPerMinute);
         }
 
         public TimeSpan Negate()
@@ -267,7 +262,7 @@ namespace System
 
         public static TimeSpan FromSeconds(double value)
         {
-            return Interval(value, MillisPerSecond);
+            return Interval(value, TicksPerSecond);
         }
 
         public TimeSpan Subtract(TimeSpan ts)
