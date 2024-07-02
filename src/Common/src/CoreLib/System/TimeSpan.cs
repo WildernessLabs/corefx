@@ -240,12 +240,12 @@ namespace System
 
         private static TimeSpan Interval(double value, int scale)
         {
-            if (double.IsNaN(value))
+            if (Double.IsNaN(value))
                 throw new ArgumentException(SR.Arg_CannotBeNaN);
-            double ticks = value * scale;
-            if ((ticks > long.MaxValue) || (ticks < long.MinValue))
+            double millis = value * scale;
+            if ((millis > Int64.MaxValue / TicksPerMillisecond) || (millis < Int64.MinValue / TicksPerMillisecond))
                 throw new OverflowException(SR.Overflow_TimeSpanTooLong);
-            return new TimeSpan((long)ticks);
+            return new TimeSpan((long)millis * TicksPerMillisecond);
         }
 
         public static TimeSpan FromMilliseconds(double value)
