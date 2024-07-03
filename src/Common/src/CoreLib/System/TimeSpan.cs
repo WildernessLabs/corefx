@@ -233,7 +233,7 @@ namespace System
             return Interval(value, TicksPerHour);
         }
 
-        private static TimeSpan Interval(double value, int scale)
+        private static TimeSpan Interval(double value, double scale)
         {
             if (double.IsNaN(value))
                 throw new ArgumentException(SR.Arg_CannotBeNaN);
